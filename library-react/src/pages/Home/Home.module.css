@@ -60,3 +60,27 @@
     }
   }
 }
+
+.status {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.submitted {
+  margin: 12px auto 0;
+  width: fit-content;
+  font-size: 12px;
+}
+
+.clearButton {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  font-size: 12px;
+  text-decoration: underline;
+
+  &:focus-visible {
+    outline: 2px solid var(--secondary-color);
+    outline-offset: 2px;
+  }
+}

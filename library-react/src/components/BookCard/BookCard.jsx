@@ -1,19 +1,23 @@
-import React from 'react'
+import { Link } from 'react-router'
 import styles from './BookCard.module.css'
 
-export default function BookCard({ cover, title, author, date }) {
-    return (
-        <li>
-            <a className={styles.bookCard} href="book.html">
-                <img className={styles.bookCover} src={cover} alt="" />
-                <div className={styles.bookContent}>
-                    <h3 className={styles.bookTitle}>{title}</h3>
-                    <p className={styles.bookMeta}>
-                        <span className={styles.bookAuthor}>{author}</span>
-                        <time dateTime={date}>{date}</time>
-                    </p>
-                </div>
-            </a>
-        </li>
-    )
+// Une carte de livre. Elle reçoit le livre grâce aux props.
+export default function BookCard({ book }) {
+  // "1851-05-12" -> "1851"
+  const year = book.publishedDate.slice(0, 4)
+
+  return (
+    <li>
+      <Link className={styles.bookCard} to={'/books/' + book.id}>
+        <img className={styles.bookCover} src={book.cover} alt="" />
+        <div className={styles.bookContent}>
+          <h3 className={styles.bookTitle}>{book.title}</h3>
+          <p className={styles.bookMeta}>
+            <span className={styles.bookAuthor}>{book.authors.join(', ')}</span>
+            {year && <time dateTime={book.publishedDate}>{year}</time>}
+          </p>
+        </div>
+      </Link>
+    </li>
+  )
 }

@@ -1,29 +1,85 @@
-import bookCover from '../../assets/moby-dick.png'
+import { useContext } from 'react'
+import { Link, useParams } from 'react-router'
+import { FavoritesContext } from '../../contexts/FavoritesContext.js'
+import useBook from '../../hooks/useBook.js'
 import styles from './Book.module.css'
 
+// Les résumés contiennent parfois du HTML (<p>, <b>...) : on l'enlève
+function enleverHtml(texte) {
+  return texte.replace(/<[^>]*>/g, ' ')
+}
+
 export default function Book() {
+  const { id } = useParams() // l'identifiant dans l'adresse /books/:id
+  const { book, loading, error } = useBook(id)
+  const { favorites, toggleFavorite } = useContext(FavoritesContext)
+
+  // 1. Chargement en cours
+  if (loading) {
+    return (
+      <main className={styles.page}>
+        <p>Chargement du livre…</p>
+      </main>
+    )
+  }
+
+  // 2. Erreur
+  if (error) {
+    return (
+      <main className={styles.page}>
+        <p role="alert">{error}</p>
+        <Link to="/">Retour à la bibliothèque</Link>
+      </main>
+    )
+  }
+
+  // 3. Livre introuvable
+  if (!book) {
+    return (
+      <main className={styles.page}>
+        <p>Aucun livre ne correspond à cet identifiant.</p>
+        <Link to="/">Retour à la bibliothèque</Link>
+      </main>
+    )
+  }
+
+  // 4. Le livre est chargé : on prépare quelques valeurs
+  const isFavorite = favorites.includes(book.id)
+
+  let summary = 'Aucun résumé disponible pour ce livre.'
+  if (book.description) {
+    summary = enleverHtml(book.description)
+  }
+
+  let language = 'Langue inconnue'
+  if (book.language) {
+    language = book.language.toUpperCase()
+  }
+
+  let genre = 'Genre inconnu'
+  if (book.categories.length > 0) {
+    genre = book.categories.join(', ')
+  }
+
   return (
     <main className={styles.page}>
       <article className={styles.bookDetail}>
         <div className={styles.bookSidebar}>
           <img
             className={styles.detailCover}
-            src={bookCover}
-            alt="Couverture du roman Moby-Dick"
-            width="667"
-            height="1000"
+            src={book.cover}
+            alt={'Couverture de ' + book.title}
           />
           <div className={styles.bookActions}>
             <button
               className={[styles.bookAction, styles.primary].join(' ')}
               type="button"
-              command="show-modal"
-              commandFor="command-dialog"
+              onClick={() => toggleFavorite(book.id)}
             >
               <span className="material-symbols-outlined" aria-hidden="true">
-                add_circle
+                {isFavorite ? 'favorite' : 'add_circle'}
               </span>
-              Commander le livre
+              {isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
             </button>
             <a className={styles.bookAction} href="#resume">
               <span className="material-symbols-outlined" aria-hidden="true">
@@ -37,78 +93,50 @@ export default function Book() {
         <div className={styles.bookInformation}>
           <nav className={styles.breadcrumb} aria-label="Fil d’Ariane">
             <ol>
-              <li><a href="index.html">Bibliothèque</a></li>
-              <li aria-current="page">Moby-Dick</li>
+              <li><Link to="/">Bibliothèque</Link></li>
+              <li aria-current="page">{book.title}</li>
             </ol>
           </nav>
 
-          <h1>Moby-<span>Dick</span></h1>
-          <p className={styles.detailAuthor}>Herman Melville</p>
+          <h1>{book.title}</h1>
+          <p className={styles.detailAuthor}>{book.authors.join(', ')}</p>
 
           <dl className={styles.detailMetadata}>
             <div>
               <dt>
                 <span className="material-symbols-outlined" aria-hidden="true">
-                calendar_today
-              </span><span className={styles.visuallyHidden}>Première publication</span>
+                  calendar_today
+                </span>
+                <span className={styles.visuallyHidden}>Première publication</span>
               </dt>
-              <dd><time dateTime="1851">1851</time></dd>
+              <dd>{book.publishedDate || 'Date inconnue'}</dd>
             </div>
             <div>
               <dt>
                 <span className="material-symbols-outlined" aria-hidden="true">
-                translate
-              </span><span className={styles.visuallyHidden}>Langue originale</span>
+                  translate
+                </span>
+                <span className={styles.visuallyHidden}>Langue originale</span>
               </dt>
-              <dd>Anglais</dd>
+              <dd>{language}</dd>
             </div>
             <div>
               <dt>
                 <span className="material-symbols-outlined" aria-hidden="true">
-                auto_stories
-              </span><span className={styles.visuallyHidden}>Genre</span>
+                  auto_stories
+                </span>
+                <span className={styles.visuallyHidden}>Genre</span>
               </dt>
-              <dd>Aventure</dd>
+              <dd>{genre}</dd>
             </div>
           </dl>
 
           <section className={styles.bookSummary} id="resume">
-            <h2 className={styles.visuallyHidden}>Présentation du roman</h2>
-            <p>
-              Ismaël embarque à bord du Pequod, un navire baleinier commandé par
-              le capitaine Achab. Au fil de la traversée, il découvre la vie en
-              mer, le travail des marins et les liens qui unissent les membres
-              de cet équipage venu de tous horizons.
-            </p>
-            <p>
-              Mais Achab ne poursuit qu’un seul but : retrouver Moby Dick, le
-              cachalot blanc qui lui a arraché une jambe. Pour le capitaine,
-              cette chasse dépasse bientôt les limites d’une simple expédition.
-              Son obsession entraîne le navire et ses hommes dans une aventure
-              périlleuse.
-            </p>
-            <p>
-              Entre récit d’aventure et réflexion sur la condition humaine, le
-              roman explore la vengeance, la démesure et la relation entre
-              l’être humain et la nature. L’océan devient le théâtre d’un
-              affrontement où se mêlent fascination, peur et désir de tout
-              maîtriser.
-            </p>
+            <h2 className={styles.visuallyHidden}>Présentation du livre</h2>
+            <p>{summary}</p>
           </section>
         </div>
       </article>
-
-      <dialog
-        className={styles.orderDialog}
-        id="command-dialog"
-        aria-labelledby="dialog-title"
-      >
-        <h2 id="dialog-title">Commande enregistrée</h2>
-        <p>Merci pour votre intérêt pour Moby-Dick.</p>
-        <form method="dialog">
-          <button className={[styles.bookAction, styles.primary].join(' ')} type="submit">Fermer</button>
-        </form>
-      </dialog>
     </main>
   )
 }

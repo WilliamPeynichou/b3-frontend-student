@@ -1,59 +1,74 @@
-import bookCover from '../../assets/moby-dick.png'
-import BookCard from '../../components/BookCard/BookCard'
+import { useEffect, useRef, useState } from 'react'
+import BookCard from '../../components/BookCard/BookCard.jsx'
+import { searchBooks } from '../../api/books.js'
+import { formatBook } from '../../api/formatBook.js'
 import styles from './Home.module.css'
-import { useState, useRef } from 'react'
 
-const books = [
-  {
-    id: 1,
-    title: 'Moby-Dick',
-    author: 'Herman Melville',
-    year: 1851,
-    cover: bookCover
-  },
-  {
-    id: 2,
-    title: 'Vingt mille lieues sous les mers',
-    author: 'Jules Verne',
-    year: 1870,
-    cover: bookCover
-  },
-  {
-    id: 3,
-    title: 'L’Île au trésor',
-    author: 'Robert Louis Stevenson',
-    year: 1883,
-    cover: bookCover
-  },
-  {
-    id: 4,
-    title: 'Le Tour du monde en quatre-vingts jours',
-    author: 'Robert Louis Stevenson',
-    year: 1883,
-    cover: bookCover
-  }
-]
-
+const RECHERCHE_PAR_DEFAUT = 'subject:fiction'
 
 export default function Home() {
-  const [search, setSearch] = useState('')
-  const [query, setQuery] = useState('javascript')
+  // --- Le formulaire ---
+  const [search, setSearch] = useState('') // ce que l'utilisateur tape
+  const [query, setQuery] = useState(RECHERCHE_PAR_DEFAUT) // la recherche validée
+  const inputRef = useRef(null) // pour accéder au champ
 
-  const inputRef = useRef(null)
+  // --- Les résultats ---
+  const [books, setBooks] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  const handleSearchChange = (event) => {
-    setSearch(event.target.value)
+  // Quand on valide le formulaire (Entrée ou bouton)
+  function handleSubmit(event) {
+    event.preventDefault() // empêche le rechargement de la page
+
+    const texte = search.trim() // enlève les espaces au début et à la fin
+    if (texte === '') {
+      setQuery(RECHERCHE_PAR_DEFAUT)
+    } else {
+      setQuery(texte)
+    }
   }
 
-  const handleSearchSubmit = (event) => {
-    event.preventDefault()
-    setQuery(search)
-  }
-
-  const handleSearchClear = () => {
+  // Quand on clique sur « Effacer »
+  function handleClear() {
     setSearch('')
-    inputRef.current.focus()
+    inputRef.current.focus() // remet le curseur dans le champ
   }
+
+  // Charge les livres à l'ouverture et à chaque nouvelle recherche validée
+  useEffect(() => {
+    // Si la recherche change pendant le chargement, on ignore l'ancienne réponse
+    let ignore = false
+
+    async function loadBooks() {
+      setLoading(true)
+      setError('')
+
+      try {
+        const data = await searchBooks(query)
+        if (ignore) return
+
+        // data.items peut ne pas exister : dans ce cas, liste vide
+        const items = data.items || []
+        setBooks(items.map(formatBook))
+      } catch (err) {
+        if (ignore) return
+        setBooks([])
+        setError(err.message)
+      }
+
+      if (!ignore) {
+        setLoading(false)
+      }
+    }
+
+    loadBooks()
+
+    // Nettoyage : appelé avant le prochain effet
+    return () => {
+      ignore = true
+    }
+  }, [query])
 
   return (
     <main className={styles.page}>
@@ -66,45 +81,49 @@ export default function Home() {
         <em>Quel sera votre prochain voyage ?</em>
       </p>
 
-      <form action="index.html" method="get" onSubmit={handleSearchSubmit}>
+      <form onSubmit={handleSubmit}>
         <div className={styles.searchField}>
           <input
+            ref={inputRef}
             type="search"
             name="q"
             id="book-name"
             aria-label="Rechercher un livre"
             placeholder="Rechercher un titre, un auteur..."
             value={search}
-            onChange={handleSearchChange}
-            ref={inputRef}
+            onChange={(event) => setSearch(event.target.value)}
           />
+          <button className={styles.clearButton} type="button" onClick={handleClear}>
+            Effacer
+          </button>
           <button type="submit" aria-label="Rechercher">
             <span className="material-symbols-outlined" aria-hidden="true">
               search
             </span>
           </button>
-          <button type="button" aria-label="Effacer la recherche" onClick={handleSearchClear}>
-            <span className="material-symbols-outlined" aria-hidden="true">
-              close
-            </span>
-          </button>
         </div>
       </form>
 
-      <p>Recherche : {query}</p>
+      <p className={styles.submitted}>Recherche validée : {query}</p>
 
       <section className={styles.catalogue}>
         <h2>Les livres de la bibliothèque</h2>
 
+        {loading && <p className={styles.status}>Chargement des livres…</p>}
+
+        {error && (
+          <p className={styles.status} role="alert">
+            {error}
+          </p>
+        )}
+
+        {!loading && !error && books.length === 0 && (
+          <p className={styles.status}>Aucun résultat</p>
+        )}
+
         <ul className={styles.bookList}>
           {books.map((book) => (
-            <BookCard
-              key={book.id}
-              cover={book.cover}
-              title={book.title}
-              author={book.author}
-              date={book.year}
-            />
+            <BookCard key={book.id} book={book} />
           ))}
         </ul>
       </section>
