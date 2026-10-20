@@ -1,7 +1,8 @@
-import { useContext } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { FavoritesContext } from '../../contexts/FavoritesContext.js'
-import useBook from '../../hooks/useBook.js'
+import { getBook } from '../../api/books.js'
+import { formatBook } from '../../api/formatBook.js'
 import styles from './Book.module.css'
 
 // Les résumés contiennent parfois du HTML (<p>, <b>...) : on l'enlève
@@ -11,7 +12,44 @@ function enleverHtml(texte) {
 
 export default function Book() {
   const { id } = useParams() // l'identifiant dans l'adresse /books/:id
-  const { book, loading, error } = useBook(id)
+  const [book, setBook] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    // Si l'id change pendant le chargement, on ignore l'ancienne réponse
+    let ignore = false
+
+    async function loadBook() {
+      setLoading(true)
+      setError('')
+      setBook(null)
+
+      try {
+        const data = await getBook(id)
+        if (ignore) return
+
+        if (data) {
+          setBook(formatBook(data))
+        }
+      } catch (err) {
+        if (ignore) return
+        setError(err.message)
+      }
+
+      if (!ignore) {
+        setLoading(false)
+      }
+    }
+
+    loadBook()
+
+    // Nettoyage : appelé avant le prochain effet ou quand on quitte la page
+    return () => {
+      ignore = true
+    }
+  }, [id])
+
   const { favorites, toggleFavorite } = useContext(FavoritesContext)
 
   // 1. Chargement en cours

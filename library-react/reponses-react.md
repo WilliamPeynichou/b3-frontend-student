@@ -19,8 +19,3 @@
 - **`useEffect`** : une action qui sort du rendu, comme un appel réseau, un abonnement ou la sauvegarde dans `localStorage`. Elle se relance quand ses dépendances changent, et son nettoyage évite les résultats périmés.
 - **`useRef`** : garder une valeur ou atteindre un élément du DOM (focus du champ) sans relancer le rendu.
 - **`useContext`** : lire une donnée partagée par toute l'application (les favoris) sans la passer par les props.
-
-## Bonus
-
-- **Persistance :** le provider initialise ses favoris depuis `localStorage` et les sauvegarde dans un effet. Une valeur invalide (JSON cassé, pas un tableau, identifiants non textes) donne une liste vide au lieu de planter.
-- **`useBook(id)` :** le chargement de la fiche est extrait dans `src/hooks/useBook.js`. `Book` ne garde plus que l'affichage, ce qui le rend plus court et plus lisible.
