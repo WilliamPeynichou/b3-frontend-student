@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import BookCard from '../../components/BookCard/BookCard.jsx'
-import { searchBooks } from '../../api/books.js'
-import { formatBook } from '../../api/formatBook.js'
+import useBooks from '../../hooks/useBooks.js'
 import styles from './Home.module.css'
 
 const RECHERCHE_PAR_DEFAUT = 'subject:fiction'
@@ -12,10 +11,8 @@ export default function Home() {
   const [query, setQuery] = useState(RECHERCHE_PAR_DEFAUT) // la recherche validée
   const inputRef = useRef(null) // pour accéder au champ
 
-  // --- Les résultats ---
-  const [books, setBooks] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  // --- Les résultats (chargés par le hook) ---
+  const { books, loading, error } = useBooks(query)
 
   // Quand on valide le formulaire (Entrée ou bouton)
   function handleSubmit(event) {
@@ -34,41 +31,6 @@ export default function Home() {
     setSearch('')
     inputRef.current.focus() // remet le curseur dans le champ
   }
-
-  // Charge les livres à l'ouverture et à chaque nouvelle recherche validée
-  useEffect(() => {
-    // Si la recherche change pendant le chargement, on ignore l'ancienne réponse
-    let ignore = false
-
-    async function loadBooks() {
-      setLoading(true)
-      setError('')
-
-      try {
-        const data = await searchBooks(query)
-        if (ignore) return
-
-        // data.items peut ne pas exister : dans ce cas, liste vide
-        const items = data.items || []
-        setBooks(items.map(formatBook))
-      } catch (err) {
-        if (ignore) return
-        setBooks([])
-        setError(err.message)
-      }
-
-      if (!ignore) {
-        setLoading(false)
-      }
-    }
-
-    loadBooks()
-
-    // Nettoyage : appelé avant le prochain effet
-    return () => {
-      ignore = true
-    }
-  }, [query])
 
   return (
     <main className={styles.page}>
